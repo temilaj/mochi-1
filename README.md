@@ -129,7 +129,7 @@ Under the research preview, Mochi 1 is a living and evolving checkpoint. There a
 ## BibTeX
 ```
 @misc{genmo2024mochi,
-      title={Mochi 1: A new SOTA in open-source video generation},
+      title={Mochi 1},
       author={Genmo Team},
       year={2024},
       publisher = {GitHub},
