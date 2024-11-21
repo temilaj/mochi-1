@@ -129,8 +129,8 @@ inviting atmosphere.
 @click.option("--height", default=480, type=int, help="Height of the video.")
 @click.option("--num_frames", default=163, type=int, help="Number of frames.")
 @click.option("--seed", default=1710977262, type=int, help="Random seed.")
-@click.option("--cfg_scale", default=4.5, type=float, help="CFG Scale.")
-@click.option("--num_steps", default=64, type=int, help="Number of inference steps.")
+@click.option("--cfg_scale", default=6.0, type=float, help="CFG Scale.")
+@click.option("--num_steps", default=100, type=int, help="Number of inference steps.")
 @click.option("--model_dir", required=True, help="Path to the model directory.")
 @click.option("--cpu_offload", is_flag=True, help="Whether to offload model to CPU")
 def generate_cli(
