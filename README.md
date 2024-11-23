@@ -74,7 +74,7 @@ pipeline = MochiSingleGPUPipeline(
         model_path=f"{MOCHI_DIR}/dit.safetensors", model_dtype="bf16"
     ),
     decoder_factory=DecoderModelFactory(
-        model_path=f"{MOCHI_DIR}/vae.safetensors",
+        model_path=f"{MOCHI_DIR}/decoder.safetensors",
     ),
     cpu_offload=True,
     decode_type="tiled_full",
