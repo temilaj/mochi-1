@@ -8,6 +8,7 @@ https://github.com/user-attachments/assets/4d268d02-906d-4cb0-87cc-f467f1497108
 ## News
 
 - ⭐ **November 26, 2024**: Added support for [LoRA fine-tuning](demos/fine_tuner/README.md)
+- ⭐ **November 5, 2024**: Consumer-GPU support for Mochi [natively in ComfyUI](https://x.com/ComfyUI/status/1853838184012251317)
 
 ## Overview
 
@@ -100,8 +101,6 @@ video = pipeline(
 
 We provide [an easy-to-use trainer](demos/fine_tuner/README.md) that allows you to build LoRA fine-tunes of Mochi on your own videos. The model can be fine-tuned on one H100 or A100 80GB GPU.
 
-We also provide a [Modal script](contrib/modal/readme.md) for finetuning Mochi on Modal GPUs.
-
 ## Model Architecture
 
 Mochi 1 represents a significant advancement in open-source video generation, featuring a 10 billion parameter diffusion model built on our novel Asymmetric Diffusion Transformer (AsymmDiT) architecture. Trained entirely from scratch, it is the largest video generative model ever openly released. And best of all, it’s a simple, hackable architecture. Additionally, we are releasing an inference harness that includes an efficient context parallel implementation. 
@@ -131,8 +130,10 @@ Genmo video models are general text-to-video diffusion models that inherently re
 Under the research preview, Mochi 1 is a living and evolving checkpoint. There are a few known limitations. The initial release generates videos at 480p today. In some edge cases with extreme motion, minor warping and distortions can also occur. Mochi 1 is also optimized for photorealistic styles so does not perform well with animated content. We also anticipate that the community will fine-tune the model to suit various aesthetic preferences.
 
 ## Related Work
-- [ComfyUI-MochiWrapper](https://github.com/kijai/ComfyUI-MochiWrapper) adds ComfyUI support for Mochi. The integration of Pytorch's SDPA attention was taken from their repository.
+- [ComfyUI-MochiWrapper](https://github.com/kijai/ComfyUI-MochiWrapper) adds ComfyUI support for Mochi. The integration of Pytorch's SDPA attention was based on their repository.
+- [ComfyUI-MochiEdit](https://github.com/logtd/ComfyUI-MochiEdit) adds ComfyUI nodes for video editing, such as object insertion and restyling.
 - [mochi-xdit](https://github.com/xdit-project/mochi-xdit) is a fork of this repository and improve the parallel inference speed with [xDiT](https://github.com/xdit-project/xdit).
+- [Modal script](contrib/modal/readme.md) for fine-tuning Mochi on Modal GPUs.
 
 
 ## BibTeX
