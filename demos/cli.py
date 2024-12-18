@@ -23,19 +23,17 @@ model_dir_path = None
 lora_path = None
 num_gpus = torch.cuda.device_count()
 cpu_offload = False
-use_fast_model = False
 
 
 def configure_model(model_dir_path_, lora_path_, cpu_offload_, fast_model_=False):
-    global model_dir_path, lora_path, cpu_offload, use_fast_model
+    global model_dir_path, lora_path, cpu_offload
     model_dir_path = model_dir_path_
     lora_path = lora_path_
     cpu_offload = cpu_offload_
-    use_fast_model = fast_model_
 
 
 def load_model():
-    global num_gpus, pipeline, model_dir_path, lora_path, use_fast_model
+    global num_gpus, pipeline, model_dir_path, lora_path
     if pipeline is None:
         MOCHI_DIR = model_dir_path
         print(f"Launching with {num_gpus} GPUs. If you want to force single GPU mode use CUDA_VISIBLE_DEVICES=0.")
@@ -43,7 +41,7 @@ def load_model():
         kwargs = dict(
             text_encoder_factory=T5ModelFactory(),
             dit_factory=DitModelFactory(
-                model_path=f"{MOCHI_DIR}/dit{'.fast' if use_fast_model else ''}.safetensors",
+                model_path=f"{MOCHI_DIR}/dit.safetensors",
                 lora_path=lora_path,
                 model_dtype="bf16",
             ),
@@ -73,18 +71,14 @@ def generate_video(
     seed,
     cfg_scale,
     num_inference_steps,
-    sigma_schedule=None,
+    threshold_noise=0.025,
+    linear_steps=None,
     output_dir="outputs",
 ):
     load_model()
 
-    # sigma_schedule should be a list of floats of length (num_inference_steps + 1),
-    # such that sigma_schedule[0] == 1.0 and sigma_schedule[-1] == 0.0 and monotonically decreasing.
-    if sigma_schedule is None:
-        if use_fast_model:
-            sigma_schedule = linear_quadratic_schedule(num_inference_steps, 0.1, 6)
-        else:
-            sigma_schedule = linear_quadratic_schedule(num_inference_steps, 0.025)
+    # Fast mode parameters: threshold_noise=0.1, linear_steps=6, cfg_scale=1.5, num_inference_steps=8
+    sigma_schedule = linear_quadratic_schedule(num_inference_steps, threshold_noise, linear_steps)
 
     # cfg_schedule should be a list of floats of length num_inference_steps.
     # For simplicity, we just use the same cfg scale at all timesteps,
@@ -140,7 +134,7 @@ inviting atmosphere.
 
 @click.command()
 @click.option("--prompt", default=DEFAULT_PROMPT, help="Prompt for video generation.")
-@click.option("--prompt-file", help="Text file containing one prompt per line.")
+@click.option("--sweep-file", help="JSONL file containing one config per line.")
 @click.option("--negative_prompt", default="", help="Negative prompt for video generation.")
 @click.option("--width", default=848, type=int, help="Width of the video.")
 @click.option("--height", default=480, type=int, help="Height of the video.")
@@ -151,39 +145,60 @@ inviting atmosphere.
 @click.option("--model_dir", required=True, help="Path to the model directory.")
 @click.option("--lora_path", required=False, help="Path to the lora file.")
 @click.option("--cpu_offload", is_flag=True, help="Whether to offload model to CPU")
-@click.option("--fast_model", is_flag=True, help="Use fast mode with optimized settings")
-@click.option("--out-dir", default="outputs", help="Output directory for generated videos")
+@click.option("--out_dir", default="outputs", help="Output directory for generated videos")
+@click.option("--threshold-noise", default=0.025, help="threshold noise")
+@click.option("--linear-steps", default=None, type=int, help="linear steps")
 def generate_cli(
-    prompt, prompt_file, negative_prompt, width, height, num_frames, seed, cfg_scale, num_steps, 
-    model_dir, lora_path, cpu_offload, fast_model, out_dir
+    prompt, sweep_file, negative_prompt, width, height, num_frames, seed, cfg_scale, num_steps, 
+    model_dir, lora_path, cpu_offload, out_dir, threshold_noise, linear_steps
 ):
-    configure_model(model_dir, lora_path, cpu_offload, fast_model)
-    
-    if fast_model:
-        print("Using fast model, overriding settings ...")
-        num_steps = 8
-        cfg_scale = 1.5
+    configure_model(model_dir, lora_path, cpu_offload)
 
-    prompts = []
-    if prompt_file:
-        with open(prompt_file, 'r') as f:
-            prompts = [line.strip() for line in f if line.strip()]
+    if sweep_file:
+        with open(sweep_file, 'r') as f:
+            for i, line in enumerate(f):
+                if not line.strip():
+                    continue
+                config = json.loads(line)
+                current_prompt = config.get('prompt', prompt)
+                current_cfg_scale = config.get('cfg_scale', cfg_scale)
+                current_num_steps = config.get('num_steps', num_steps)
+                current_threshold_noise = config.get('threshold_noise', threshold_noise)
+                current_linear_steps = config.get('linear_steps', linear_steps)
+                current_seed = config.get('seed', seed)
+                current_width = config.get('width', width)
+                current_height = config.get('height', height)
+                current_num_frames = config.get('num_frames', num_frames)
+
+                output_path = generate_video(
+                    current_prompt,
+                    negative_prompt,
+                    current_width,
+                    current_height,
+                    current_num_frames,
+                    current_seed,
+                    current_cfg_scale,
+                    current_num_steps,
+                    threshold_noise=current_threshold_noise,
+                    linear_steps=current_linear_steps,
+                    output_dir=out_dir,
+                )
+                click.echo(f"Video {i+1} generated at: {output_path}")
     else:
-        prompts = [prompt]
-
-    for i, current_prompt in enumerate(prompts):
-        output = generate_video(
-            current_prompt,
+        output_path = generate_video(
+            prompt,
             negative_prompt,
             width,
             height,
             num_frames,
-            seed + i,  # Use different seed for each prompt
+            seed,
             cfg_scale,
             num_steps,
+            threshold_noise=threshold_noise,
+            linear_steps=linear_steps,
             output_dir=out_dir,
         )
-        click.echo(f"Video {i+1}/{len(prompts)} generated at: {output}")
+        click.echo(f"Video generated at: {output_path}")
 
 
 if __name__ == "__main__":
