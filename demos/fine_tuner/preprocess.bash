@@ -4,6 +4,29 @@
 set -eo pipefail
 set -x
 
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to install bc using the appropriate package manager
+install_bc() {
+    if command_exists apt-get; then
+        sudo apt-get update && sudo apt-get install -y bc
+    elif command_exists yum; then
+        sudo yum install -y bc
+    else
+        echo "Error: Could not find package manager to install bc"
+        exit 1
+    fi
+}
+
+# Check and install bc if necessary
+if ! command_exists bc; then
+    echo "bc is not installed. Installing bc..."
+    install_bc
+fi
+
 # Function to display help
 usage() {
   echo "Usage: $0 -v|--videos_dir videos_dir -o|--output_dir output_dir -w|--weights_dir weights_dir -n|--num_frames num_frames"
