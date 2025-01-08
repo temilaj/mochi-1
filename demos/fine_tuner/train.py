@@ -28,6 +28,7 @@ torch.use_deterministic_algorithms(False)
 import genmo.mochi_preview.dit.joint_model.lora as lora
 from genmo.lib.progress import progress_bar
 from genmo.lib.utils import Timer, save_video
+from genmo.mochi_preview.vae.vae_stats import vae_latents_to_dit_latents
 from genmo.mochi_preview.pipelines import (
     DecoderModelFactory,
     DitModelFactory,
@@ -368,7 +369,8 @@ def main(config_path):
             )
             assert preds.shape == z.shape
 
-        loss = F.mse_loss(preds.float(), ut.float())
+        ut_dit_space = vae_latents_to_dit_latents(ut.float())
+        loss = F.mse_loss(preds.float(), ut_dit_space)
         loss.backward()
 
         log_kwargs = {
