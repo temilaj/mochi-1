@@ -49,9 +49,7 @@ class TimestepEmbedder(nn.Module):
         args = t[:, None].float() * freqs[None]
         embedding = torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
         if dim % 2:
-            embedding = torch.cat(
-                [embedding, torch.zeros_like(embedding[:, :1])], dim=-1
-            )
+            embedding = torch.cat([embedding, torch.zeros_like(embedding[:, :1])], dim=-1)
         return embedding
 
     def forward(self, t):
@@ -106,6 +104,7 @@ class FeedForward(nn.Module):
         self.w2 = nn.Linear(hidden_size, in_features, bias=False, device=device)
 
     def forward(self, x):
+        # assert self.w1.weight.dtype == torch.bfloat16, f"FFN weight dtype {self.w1.weight.dtype} != bfloat16"
         x, gate = self.w1(x).chunk(2, dim=-1)
         x = self.w2(F.silu(x) * gate)
         return x
@@ -137,15 +136,17 @@ class PatchEmbed(nn.Module):
             device=device,
         )
         assert norm_layer is None
-        self.norm = (
-            norm_layer(embed_dim, device=device) if norm_layer else nn.Identity()
-        )
+        self.norm = norm_layer(embed_dim, device=device) if norm_layer else nn.Identity()
 
     def forward(self, x):
         B, _C, T, H, W = x.shape
         if not self.dynamic_img_pad:
-            assert H % self.patch_size[0] == 0, f"Input height ({H}) should be divisible by patch size ({self.patch_size[0]})."
-            assert W % self.patch_size[1] == 0, f"Input width ({W}) should be divisible by patch size ({self.patch_size[1]})."
+            assert (
+                H % self.patch_size[0] == 0
+            ), f"Input height ({H}) should be divisible by patch size ({self.patch_size[0]})."
+            assert (
+                W % self.patch_size[1] == 0
+            ), f"Input width ({W}) should be divisible by patch size ({self.patch_size[1]})."
         else:
             pad_h = (self.patch_size[0] - H % self.patch_size[0]) % self.patch_size[0]
             pad_w = (self.patch_size[1] - W % self.patch_size[1]) % self.patch_size[1]
@@ -171,6 +172,8 @@ class RMSNorm(torch.nn.Module):
         self.register_parameter("bias", None)
 
     def forward(self, x):
+        # assert self.weight.dtype == torch.float32, f"RMSNorm weight dtype {self.weight.dtype} != float32"
+
         x_fp32 = x.float()
         x_normed = x_fp32 * torch.rsqrt(x_fp32.pow(2).mean(-1, keepdim=True) + self.eps)
         return (x_normed * self.weight).type_as(x)

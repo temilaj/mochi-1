@@ -1,7 +1,13 @@
+#! /usr/bin/env python
+
+
+import sys
+
 import click
 import gradio as gr
 
-from mochi_preview.infer import generate_video, set_model_path
+sys.path.append("..")
+from cli import configure_model, generate_video
 
 with gr.Blocks() as demo:
     gr.Markdown("Video Generator")
@@ -17,10 +23,8 @@ with gr.Blocks() as demo:
         height = gr.Number(label="Height", value=480, precision=0)
         num_frames = gr.Number(label="Number of Frames", value=163, precision=0)
     with gr.Row():
-        cfg_scale = gr.Number(label="CFG Scale", value=4.5)
-        num_inference_steps = gr.Number(
-            label="Number of Inference Steps", value=200, precision=0
-        )
+        cfg_scale = gr.Number(label="CFG Scale", value=6.0)
+        num_inference_steps = gr.Number(label="Number of Inference Steps", value=100, precision=0)
     btn = gr.Button("Generate Video")
     output = gr.Video()
 
@@ -42,9 +46,12 @@ with gr.Blocks() as demo:
 
 @click.command()
 @click.option("--model_dir", required=True, help="Path to the model directory.")
-def launch(model_dir):
-    set_model_path(model_dir)
+@click.option("--lora_path", required=False, help="Path to the lora file.")
+@click.option("--cpu_offload", is_flag=True, help="Whether to offload model to CPU")
+def launch(model_dir, lora_path, cpu_offload):
+    configure_model(model_dir, lora_path, cpu_offload)
     demo.launch()
+
 
 if __name__ == "__main__":
     launch()

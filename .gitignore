@@ -3,6 +3,17 @@
 dist
 __pycache__
 mochi.egg-info
+genmo.egg-info
 outputs
 build
 .ruff_cache
+*.mp4
+*.txt
+*.pt
+*.log
+*.json
+*.safetensors
+wandb/
+*.err
+*.out
+*.MOV
